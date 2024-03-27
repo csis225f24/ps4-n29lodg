@@ -2,6 +2,8 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Point;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
@@ -18,7 +20,7 @@ import javax.swing.JSlider;
  * @author Nicholas Lodge
  * @version 3/18/24
  */
-class KochCurves extends MouseAdapter implements Runnable{
+class KochCurves extends MouseAdapter implements Runnable, ActionListener{
     //Start and clear buttons
     JButton start, clear;
 
@@ -60,10 +62,11 @@ class KochCurves extends MouseAdapter implements Runnable{
             }
         };
         start = new JButton("Start");
-        clear = new JButton("Clear");
+        start.addActionListener(this);
         panel.add(start);
+        clear = new JButton("Clear");
+        clear.addActionListener(this);
         panel.add(clear);
-
         frame.add(panel);
         panel.addMouseListener(this);
         panel.addMouseMotionListener(this);
@@ -73,26 +76,29 @@ class KochCurves extends MouseAdapter implements Runnable{
         frame.setVisible(true);
     }
 
-    //advance to next sequence of koch curves,
-    //clear panel,
-    //or draw a Koch line segment
     @Override
-    public void mousePressed(MouseEvent e){
+    public void actionPerformed(ActionEvent e){
         if(e.getSource() == start){
             KochLine.advanceKochLine(lineTracker);
+            System.out.println(lineTracker);
         }else if(e.getSource() == clear){
             lineTracker = -1;
             listOfCurrentLines.clear();
             panel.repaint();
-        }else{
-            if(clickNum == 0){
-                clickNum = 1;
-                click = e.getPoint();
-            }else if(clickNum == 1){
-                clickNum = 0;
-                listOfCurrentLines.add(new KochLine(click, e.getPoint()));
-                lineTracker++;
-            }
+        }
+    }
+
+    //draw a Koch line segment 
+    @Override
+    public void mousePressed(MouseEvent e){
+        
+        if(clickNum == 0){
+            clickNum = 1;
+            click = e.getPoint();
+        }else if(clickNum == 1){
+            clickNum = 0;
+            listOfCurrentLines.add(new KochLine(click, e.getPoint()));
+            lineTracker++;
         }
     }
 
@@ -101,6 +107,7 @@ class KochCurves extends MouseAdapter implements Runnable{
         currPos = e.getPoint();
         panel.repaint();
     }
+    
     public static void main(String args[]) {
 
         javax.swing.SwingUtilities.invokeLater(new KochCurves());
@@ -108,6 +115,10 @@ class KochCurves extends MouseAdapter implements Runnable{
 
     public static ArrayList<KochLine> getList(){
         return listOfCurrentLines;
+    }
+
+    public static void setList(ArrayList<KochLine> list){
+        listOfCurrentLines = list;
     }
 }
 
@@ -139,26 +150,35 @@ class KochLine{
 
     
     public static Point getMiddle1(KochLine line){
-        int newCoords = (int)line.startPoint.distance(line.endPoint)/3;
-        return new Point(newCoords, newCoords);
+        // int newCoords = (int)line.startPoint.distance(line.endPoint)/3;
+        // return new Point(newCoords, newCoords);
+        int newX = ((line.endPoint.x - line.startPoint.x)/3) + line.startPoint.x;
+        int newY = ((line.endPoint.y - line.startPoint.y)/3) + line.startPoint.y;
+        return new Point(newX, newY);
     }
 
     public static Point getMiddle2(KochLine line){
-        int x = (getMiddle1(line).x) + (getMiddle3(line).x);
-        x = x + (int)(Math.sqrt(getMiddle1(line).y - getMiddle3(line).y)/2);
+        // int x = (getMiddle1(line).x) + (getMiddle3(line).x);
+        // x = x + (int)(Math.sqrt(getMiddle1(line).y - getMiddle3(line).y)/2);
     
-        int y = (getMiddle1(line).y) + (getMiddle3(line).y);
-        y = y + (int)(Math.sqrt(getMiddle3(line).x - getMiddle1(line).x)/2);
-        return new Point(x,y);
-    }
+        // int y = (getMiddle1(line).y) + (getMiddle3(line).y);
+        // y = y + (int)(Math.sqrt(getMiddle1(line).x - getMiddle3(line).x)/2);
+        int newX = (int)((getMiddle3(line).x + getMiddle1(line).x) + (Math.sqrt(3)*(getMiddle3(line).y - getMiddle1(line).y)))/2;
+        int newY = (int)((getMiddle3(line).y + getMiddle1(line).y) - (Math.sqrt(3)*(getMiddle3(line).x - getMiddle1(line).x)))/2;
+        return new Point(newX,newY);
+    } 
 
     public static Point getMiddle3(KochLine line){
-        int newCoords = (int)(line.startPoint.distance(line.endPoint)/3)*2;
-        return new Point(newCoords, newCoords);
+        // int newCoords = (int)(line.startPoint.distance(line.endPoint)/3)*2;
+        // return new Point(newCoords, newCoords);
+        int newX = (((line.endPoint.x - line.startPoint.x)/3)*2) + line.startPoint.x;
+        int newY = (((line.endPoint.y - line.startPoint.y)/3)*2) + line.startPoint.y;
+        return new Point(newX, newY);
     }
 
     public static void advanceKochLine(int startFrom){
         ArrayList<KochLine> listOfNextLines = new ArrayList<KochLine>();
+        //start at most recently drawn line
         //for each line segment, get the 5 points needed
         ArrayList<KochLine> list = KochCurves.getList();
         for(int i = startFrom; i < list.size(); i++){
@@ -174,6 +194,6 @@ class KochLine{
             listOfNextLines.add(new KochLine(c, d));
             listOfNextLines.add(new KochLine(d, e));
         }
-        list = listOfNextLines;
+        KochCurves.setList(listOfNextLines);
     }
 }
