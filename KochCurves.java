@@ -31,8 +31,8 @@ class KochCurves extends MouseAdapter implements Runnable, ActionListener{
     JPanel panel;
 
     //List to store line segments drawn on the panel
-    public static ArrayList<KochLine> listOfCurrentLines = new ArrayList<KochLine>();
-
+    public static ArrayList<KochLine> listOfPreviousLines = new ArrayList<KochLine>();
+    public static ArrayList<KochLine> currentLine = new ArrayList<KochLine>();
     //Line tracker used to keep track of most recently drawn line.
     int lineTracker = -1;
     int clickNum = 0;
@@ -56,7 +56,11 @@ class KochCurves extends MouseAdapter implements Runnable, ActionListener{
                     panel.repaint();
                 }
 
-                for(KochLine l : listOfCurrentLines){
+                for(KochLine l : listOfPreviousLines){
+                    l.paint(g);
+                }
+
+                for(KochLine l : currentLine){
                     l.paint(g);
                 }
             }
@@ -79,11 +83,12 @@ class KochCurves extends MouseAdapter implements Runnable, ActionListener{
     @Override
     public void actionPerformed(ActionEvent e){
         if(e.getSource() == start){
-            KochLine.advanceKochLine(lineTracker);
+            KochLine.advanceKochLine(currentLine.get(0), lineTracker);
             System.out.println(lineTracker);
         }else if(e.getSource() == clear){
             lineTracker = -1;
-            listOfCurrentLines.clear();
+            listOfPreviousLines.clear();
+            currentLine.clear();
             panel.repaint();
         }
     }
@@ -96,9 +101,23 @@ class KochCurves extends MouseAdapter implements Runnable, ActionListener{
             clickNum = 1;
             click = e.getPoint();
         }else if(clickNum == 1){
-            clickNum = 0;
-            listOfCurrentLines.add(new KochLine(click, e.getPoint()));
-            lineTracker++;
+            //line already exists, we only want to work with
+            //most recently drawn line
+            if(!currentLine.isEmpty()){
+                for(int i = 0; i < currentLine.size(); i++){
+                    listOfPreviousLines.add(currentLine.get(i));
+                }
+                currentLine.clear();
+                //listOfPreviousLines.add(new KochLine(click, e.getPoint()));
+                currentLine.add(new KochLine(click, e.getPoint()));
+                clickNum = 0;
+                lineTracker++;
+            }else{
+                clickNum = 0;
+                //listOfPreviousLines.add(new KochLine(click, e.getPoint()));
+                currentLine.add(new KochLine(click, e.getPoint()));
+                lineTracker++;
+            }
         }
     }
 
@@ -114,11 +133,11 @@ class KochCurves extends MouseAdapter implements Runnable, ActionListener{
     }
 
     public static ArrayList<KochLine> getList(){
-        return listOfCurrentLines;
+        return currentLine;
     }
 
     public static void setList(ArrayList<KochLine> list){
-        listOfCurrentLines = list;
+        currentLine = list;
     }
 }
 
@@ -135,7 +154,6 @@ class KochLine{
     private static final int SHORTESTLINE = 10;
 
     //start and end points for initial line draw
-    //middle points indicate where the new lines will be
     public Point startPoint, endPoint;
 
     public KochLine(Point startPoint, Point endPoint){
@@ -150,50 +168,46 @@ class KochLine{
 
     
     public static Point getMiddle1(KochLine line){
-        // int newCoords = (int)line.startPoint.distance(line.endPoint)/3;
-        // return new Point(newCoords, newCoords);
         int newX = ((line.endPoint.x - line.startPoint.x)/3) + line.startPoint.x;
         int newY = ((line.endPoint.y - line.startPoint.y)/3) + line.startPoint.y;
         return new Point(newX, newY);
     }
 
     public static Point getMiddle2(KochLine line){
-        // int x = (getMiddle1(line).x) + (getMiddle3(line).x);
-        // x = x + (int)(Math.sqrt(getMiddle1(line).y - getMiddle3(line).y)/2);
-    
-        // int y = (getMiddle1(line).y) + (getMiddle3(line).y);
-        // y = y + (int)(Math.sqrt(getMiddle1(line).x - getMiddle3(line).x)/2);
         int newX = (int)((getMiddle3(line).x + getMiddle1(line).x) + (Math.sqrt(3)*(getMiddle3(line).y - getMiddle1(line).y)))/2;
         int newY = (int)((getMiddle3(line).y + getMiddle1(line).y) - (Math.sqrt(3)*(getMiddle3(line).x - getMiddle1(line).x)))/2;
         return new Point(newX,newY);
     } 
 
     public static Point getMiddle3(KochLine line){
-        // int newCoords = (int)(line.startPoint.distance(line.endPoint)/3)*2;
-        // return new Point(newCoords, newCoords);
         int newX = (((line.endPoint.x - line.startPoint.x)/3)*2) + line.startPoint.x;
         int newY = (((line.endPoint.y - line.startPoint.y)/3)*2) + line.startPoint.y;
         return new Point(newX, newY);
     }
 
-    public static void advanceKochLine(int startFrom){
+    public static void advanceKochLine(KochLine line, int startFrom){
         ArrayList<KochLine> listOfNextLines = new ArrayList<KochLine>();
         //start at most recently drawn line
         //for each line segment, get the 5 points needed
         ArrayList<KochLine> list = KochCurves.getList();
-        for(int i = startFrom; i < list.size(); i++){
-            Point a = new Point(list.get(i).startPoint);
-            Point b = new Point(getMiddle1(list.get(i)));
-            Point c = new Point(getMiddle2(list.get(i)));
-            Point d = new Point(getMiddle3(list.get(i)));
-            Point e = new Point(list.get(i).endPoint);
-
-            //Make 4 new line segments using the 5 points we got from the previous segment
-            listOfNextLines.add(new KochLine(a, b));
-            listOfNextLines.add(new KochLine(b, c));
-            listOfNextLines.add(new KochLine(c, d));
-            listOfNextLines.add(new KochLine(d, e));
+        if(line.endPoint.distance(line.startPoint) <= SHORTESTLINE){
+            return;
+        }else{
+            for(KochLine l : list){
+                Point a = new Point(l.startPoint);
+                Point b = new Point(getMiddle1(l));
+                Point c = new Point(getMiddle2(l));
+                Point d = new Point(getMiddle3(l));
+                Point e = new Point(l.endPoint);
+    
+                //Make 4 new line segments using the 5 points we got from the previous segment
+                listOfNextLines.add(new KochLine(a, b));
+                listOfNextLines.add(new KochLine(b, c));
+                listOfNextLines.add(new KochLine(c, d));
+                listOfNextLines.add(new KochLine(d, e));
+            }
+            KochCurves.setList(listOfNextLines);
         }
-        KochCurves.setList(listOfNextLines);
+        
     }
 }
