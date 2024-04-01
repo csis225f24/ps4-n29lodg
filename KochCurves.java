@@ -11,6 +11,8 @@ import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JSlider;
+//Bonus: jslider to change wait time on panel between 1 and 10 seconds
+
 
 /**
  * This program will define a line with
@@ -25,7 +27,8 @@ class KochCurves extends MouseAdapter implements Runnable, ActionListener{
     JButton start, clear;
 
     //Adjusts length of time between redraws
-    JSlider timeBuffer;
+    static JSlider timeBuffer;
+    static int waitTime;
 
     //Frame to display, panel to draw koch curves on
     JPanel panel;
@@ -74,7 +77,12 @@ class KochCurves extends MouseAdapter implements Runnable, ActionListener{
         frame.add(panel);
         panel.addMouseListener(this);
         panel.addMouseMotionListener(this);
-
+        //Initialising jslider for bonus
+        timeBuffer = new JSlider(0, 10);
+        panel.add(timeBuffer);
+        timeBuffer.setPaintTrack(true);
+        timeBuffer.setPaintTicks(true);
+        timeBuffer.setPaintLabels(true);
         //display frame and panel
         frame.pack();
         frame.setVisible(true);
@@ -83,7 +91,7 @@ class KochCurves extends MouseAdapter implements Runnable, ActionListener{
     @Override
     public void actionPerformed(ActionEvent e){
         if(e.getSource() == start){
-            KochLine.advanceKochLine(currentLine.get(0), lineTracker);
+            KochLine.advanceKochLine(currentLine);
             System.out.println(lineTracker);
         }else if(e.getSource() == clear){
             lineTracker = -1;
@@ -139,6 +147,32 @@ class KochCurves extends MouseAdapter implements Runnable, ActionListener{
     public static void setList(ArrayList<KochLine> list){
         currentLine = list;
     }
+
+    public static int getTimeSlider(){
+        switch (timeBuffer.getValue()) {
+            case 1:
+                waitTime = 1000;break;
+            case 2:
+                waitTime = 2000;break;
+            case 3:
+                waitTime = 3000;break;
+            case 4:
+                waitTime = 4000;break;
+            case 5:
+                waitTime = 5000;break;
+            case 6:
+                waitTime = 6000;break;
+            case 7:
+                waitTime = 7000;break;
+            case 8:
+                waitTime = 8000;break;
+            case 9:
+                waitTime = 9000;break;
+            case 10:
+                waitTime = 10000;break;
+        }
+        return waitTime;
+    }
 }
 
 /**
@@ -149,7 +183,7 @@ class KochCurves extends MouseAdapter implements Runnable, ActionListener{
  * @author Nicholas Lodge
  * @version 3/24/24
  */
-class KochLine{
+class KochLine extends Thread{
     //add comment describing constant
     private static final int SHORTESTLINE = 10;
 
@@ -185,15 +219,19 @@ class KochLine{
         return new Point(newX, newY);
     }
 
-    public static void advanceKochLine(KochLine line, int startFrom){
+    public static void advanceKochLine(ArrayList<KochLine> lineList){
         ArrayList<KochLine> listOfNextLines = new ArrayList<KochLine>();
         //start at most recently drawn line
         //for each line segment, get the 5 points needed
-        ArrayList<KochLine> list = KochCurves.getList();
-        if(line.endPoint.distance(line.startPoint) <= SHORTESTLINE){
+        //ArrayList<KochLine> list = KochCurves.getList();
+        if(lineList.get(0).endPoint.distance(lineList.get(0).startPoint) <= SHORTESTLINE){
             return;
         }else{
-            for(KochLine l : list){
+            try {
+                sleep(KochCurves.getTimeSlider());
+            } catch (InterruptedException e) {
+            }
+            for(KochLine l : lineList){
                 Point a = new Point(l.startPoint);
                 Point b = new Point(getMiddle1(l));
                 Point c = new Point(getMiddle2(l));
@@ -207,6 +245,7 @@ class KochLine{
                 listOfNextLines.add(new KochLine(d, e));
             }
             KochCurves.setList(listOfNextLines);
+            //advanceKochLine(listOfNextLines);
         }
         
     }
