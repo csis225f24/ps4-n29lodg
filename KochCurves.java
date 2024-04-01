@@ -12,7 +12,7 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JSlider;
 //Bonus: jslider to change wait time on panel between 1 and 10 seconds
-
+//Bonus: paints new lines as red and all existing lines as blue
 
 /**
  * This program will define a line with
@@ -117,13 +117,13 @@ class KochCurves extends MouseAdapter implements Runnable, ActionListener{
                 }
                 currentLine.clear();
                 //listOfPreviousLines.add(new KochLine(click, e.getPoint()));
-                currentLine.add(new KochLine(click, e.getPoint()));
+                currentLine.add(new KochLine(click, e.getPoint(), Color.BLUE));
                 clickNum = 0;
                 lineTracker++;
             }else{
                 clickNum = 0;
                 //listOfPreviousLines.add(new KochLine(click, e.getPoint()));
-                currentLine.add(new KochLine(click, e.getPoint()));
+                currentLine.add(new KochLine(click, e.getPoint(), Color.BLUE));
                 lineTracker++;
             }
         }
@@ -189,17 +189,26 @@ class KochLine extends Thread{
 
     //start and end points for initial line draw
     public Point startPoint, endPoint;
+    
+    //setting color of each line so new lines appear as red,
+    //existing lines are blue
+    public Color color;
 
-    public KochLine(Point startPoint, Point endPoint){
+    public KochLine(Point startPoint, Point endPoint, Color color){
         this.startPoint = startPoint;
         this.endPoint = endPoint;
+        this.color = color;
     }
 
     public void paint(Graphics g){
-        g.setColor(Color.BLUE);
-        g.drawLine(startPoint.x, startPoint.y, endPoint.x, endPoint.y);
+        if(color.equals(Color.BLUE)){
+            g.setColor(Color.BLUE);
+            g.drawLine(startPoint.x, startPoint.y, endPoint.x, endPoint.y);
+        }else if(color.equals(Color.RED)){
+            g.setColor(Color.RED);
+            g.drawLine(startPoint.x, startPoint.y, endPoint.x, endPoint.y);
+        }
     }
-
     
     public static Point getMiddle1(KochLine line){
         int newX = ((line.endPoint.x - line.startPoint.x)/3) + line.startPoint.x;
@@ -232,6 +241,11 @@ class KochLine extends Thread{
             } catch (InterruptedException e) {
             }
             for(KochLine l : lineList){
+                if(!l.color.equals(Color.RED)){
+                    l.color = Color.BLUE;
+                }
+            }
+            for(KochLine l : lineList){
                 Point a = new Point(l.startPoint);
                 Point b = new Point(getMiddle1(l));
                 Point c = new Point(getMiddle2(l));
@@ -239,10 +253,10 @@ class KochLine extends Thread{
                 Point e = new Point(l.endPoint);
     
                 //Make 4 new line segments using the 5 points we got from the previous segment
-                listOfNextLines.add(new KochLine(a, b));
-                listOfNextLines.add(new KochLine(b, c));
-                listOfNextLines.add(new KochLine(c, d));
-                listOfNextLines.add(new KochLine(d, e));
+                listOfNextLines.add(new KochLine(a, b, Color.BLUE));
+                listOfNextLines.add(new KochLine(b, c, Color.RED));
+                listOfNextLines.add(new KochLine(c, d, Color.RED));
+                listOfNextLines.add(new KochLine(d, e, Color.BLUE));
             }
             KochCurves.setList(listOfNextLines);
             //advanceKochLine(listOfNextLines);
