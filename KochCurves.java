@@ -11,13 +11,13 @@ import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JSlider;
-//Bonus: jslider to change wait time on panel between 1 and 10 seconds
+//Bonus: Jslider to change wait time on panel between 1 and 10 seconds
 //Bonus: paints new lines as red and all existing lines as blue
 
 /**
  * This program will define a line with
- * 2 endpoint, and recursively redraw them
- * in the pattern of the Koch Curve
+ * 2 endpoint, and redraw them
+ * in the pattern of the Koch Curve when the start button is clicked
  * 
  * @author Nicholas Lodge
  * @version 3/18/24
@@ -36,9 +36,12 @@ class KochCurves extends MouseAdapter implements Runnable, ActionListener{
     //List to store line segments drawn on the panel
     public static ArrayList<KochLine> listOfPreviousLines = new ArrayList<KochLine>();
     public static ArrayList<KochLine> currentLine = new ArrayList<KochLine>();
-    //Line tracker used to keep track of most recently drawn line.
-    int lineTracker = -1;
+
+    //Clicknum used to draw starting line
     int clickNum = 0;
+
+    //Click - inital click when drawing a line
+    //Currpos - current position of the mouse on the panel
     Point click, currPos;
 
     public void run(){
@@ -54,15 +57,18 @@ class KochCurves extends MouseAdapter implements Runnable, ActionListener{
             public void paintComponent(Graphics g){
                 super.paintComponent(g);
 
+                //If mouse has been clicked once, draw 'sling' to the current mouse position
                 if(clickNum == 1){
                     g.drawLine(click.x, click.y, currPos.x, currPos.y);
                     panel.repaint();
                 }
 
+                //When new line is drawn, we want the previous lines to stay on the screen
                 for(KochLine l : listOfPreviousLines){
                     l.paint(g);
                 }
 
+                //Draw the newest line
                 for(KochLine l : currentLine){
                     l.paint(g);
                 }
@@ -78,7 +84,7 @@ class KochCurves extends MouseAdapter implements Runnable, ActionListener{
         panel.addMouseListener(this);
         panel.addMouseMotionListener(this);
         //Initialising jslider for bonus
-        timeBuffer = new JSlider(0, 10);
+        timeBuffer = new JSlider(1, 10);
         panel.add(timeBuffer);
         timeBuffer.setPaintTrack(true);
         timeBuffer.setPaintTicks(true);
@@ -88,13 +94,13 @@ class KochCurves extends MouseAdapter implements Runnable, ActionListener{
         frame.setVisible(true);
     }
 
+    //If start button is clicked, advance to the next 'stage' of the koch curve
+    //Else if clear is clicked, clear the panel
     @Override
     public void actionPerformed(ActionEvent e){
         if(e.getSource() == start){
             KochLine.advanceKochLine(currentLine);
-            System.out.println(lineTracker);
         }else if(e.getSource() == clear){
-            lineTracker = -1;
             listOfPreviousLines.clear();
             currentLine.clear();
             panel.repaint();
@@ -116,38 +122,35 @@ class KochCurves extends MouseAdapter implements Runnable, ActionListener{
                     listOfPreviousLines.add(currentLine.get(i));
                 }
                 currentLine.clear();
-                //listOfPreviousLines.add(new KochLine(click, e.getPoint()));
-                currentLine.add(new KochLine(click, e.getPoint(), Color.BLUE));
+                currentLine.add(new KochLine(click, e.getPoint(), Color.blue));
                 clickNum = 0;
-                lineTracker++;
             }else{
                 clickNum = 0;
-                //listOfPreviousLines.add(new KochLine(click, e.getPoint()));
-                currentLine.add(new KochLine(click, e.getPoint(), Color.BLUE));
-                lineTracker++;
+                currentLine.add(new KochLine(click, e.getPoint(), Color.blue));
             }
         }
     }
 
+    //If mouse is moved, get newPoint for current position
     @Override
     public void mouseMoved(MouseEvent e) {
         currPos = e.getPoint();
         panel.repaint();
     }
-    
+
+    //Main method to run interface
     public static void main(String args[]) {
 
         javax.swing.SwingUtilities.invokeLater(new KochCurves());
     }
 
-    public static ArrayList<KochLine> getList(){
-        return currentLine;
-    }
-
+    //Sets the list of current lines to the new list of lines in advanceKochLine()
     public static void setList(ArrayList<KochLine> list){
         currentLine = list;
     }
 
+    //Based on the value 1-10 of the JSLider, changes the wait time for how long
+    //the panel will wait before repainting
     public static int getTimeSlider(){
         switch (timeBuffer.getValue()) {
             case 1:
@@ -184,7 +187,7 @@ class KochCurves extends MouseAdapter implements Runnable, ActionListener{
  * @version 3/24/24
  */
 class KochLine extends Thread{
-    //add comment describing constant
+    //Constant used to ensure that kochCurve is no longer advanced after a line is shorter than 10
     private static final int SHORTESTLINE = 10;
 
     //start and end points for initial line draw
@@ -194,12 +197,14 @@ class KochLine extends Thread{
     //existing lines are blue
     public Color color;
 
+    //KochLine constructor, 2 endpoints and a color(Blue or red)
     public KochLine(Point startPoint, Point endPoint, Color color){
         this.startPoint = startPoint;
         this.endPoint = endPoint;
         this.color = color;
     }
 
+    //Paint function for KochLine, switch graphics color based on stored color value in each line
     public void paint(Graphics g){
         if(color.equals(Color.BLUE)){
             g.setColor(Color.BLUE);
@@ -210,29 +215,31 @@ class KochLine extends Thread{
         }
     }
     
+    //Gets the first point that is 1/3 the distance of the line
     public static Point getMiddle1(KochLine line){
         int newX = ((line.endPoint.x - line.startPoint.x)/3) + line.startPoint.x;
         int newY = ((line.endPoint.y - line.startPoint.y)/3) + line.startPoint.y;
         return new Point(newX, newY);
     }
 
+    //Calculates the 'top' point of the triangle replacing the middle third of the line
     public static Point getMiddle2(KochLine line){
         int newX = (int)((getMiddle3(line).x + getMiddle1(line).x) + (Math.sqrt(3)*(getMiddle3(line).y - getMiddle1(line).y)))/2;
         int newY = (int)((getMiddle3(line).y + getMiddle1(line).y) - (Math.sqrt(3)*(getMiddle3(line).x - getMiddle1(line).x)))/2;
         return new Point(newX,newY);
     } 
 
+    //Gets the third point that is 2/3 the distance of the line
     public static Point getMiddle3(KochLine line){
         int newX = (((line.endPoint.x - line.startPoint.x)/3)*2) + line.startPoint.x;
         int newY = (((line.endPoint.y - line.startPoint.y)/3)*2) + line.startPoint.y;
         return new Point(newX, newY);
     }
 
+    //Advances the current line to the next 'stage' of the kochcurve
     public static void advanceKochLine(ArrayList<KochLine> lineList){
         ArrayList<KochLine> listOfNextLines = new ArrayList<KochLine>();
-        //start at most recently drawn line
-        //for each line segment, get the 5 points needed
-        //ArrayList<KochLine> list = KochCurves.getList();
+        //starts at most recently drawn line
         if(lineList.get(0).endPoint.distance(lineList.get(0).startPoint) <= SHORTESTLINE){
             return;
         }else{
@@ -241,10 +248,11 @@ class KochLine extends Thread{
             } catch (InterruptedException e) {
             }
             for(KochLine l : lineList){
-                if(!l.color.equals(Color.RED)){
-                    l.color = Color.BLUE;
+                if(!l.color.equals(Color.red)){
+                    l.color = Color.blue;
                 }
             }
+            //for each line, get the 5 points needed to make 4 new lines
             for(KochLine l : lineList){
                 Point a = new Point(l.startPoint);
                 Point b = new Point(getMiddle1(l));
@@ -253,13 +261,15 @@ class KochLine extends Thread{
                 Point e = new Point(l.endPoint);
     
                 //Make 4 new line segments using the 5 points we got from the previous segment
-                listOfNextLines.add(new KochLine(a, b, Color.BLUE));
-                listOfNextLines.add(new KochLine(b, c, Color.RED));
-                listOfNextLines.add(new KochLine(c, d, Color.RED));
-                listOfNextLines.add(new KochLine(d, e, Color.BLUE));
+                listOfNextLines.add(new KochLine(a, b, Color.blue));
+                listOfNextLines.add(new KochLine(b, c, Color.red));
+                listOfNextLines.add(new KochLine(c, d, Color.red));
+                listOfNextLines.add(new KochLine(d, e, Color.blue));
             }
             KochCurves.setList(listOfNextLines);
-            //advanceKochLine(listOfNextLines);
+        
+            //advanceKochLine(listOfNextLines); - recursion causes the curve to advance to the very end, 
+            //can't see the different stages
         }
         
     }
